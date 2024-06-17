@@ -12,28 +12,27 @@ wss.on('connection', function connection(ws) {
     const message = JSON.parse(data);
     if(message.type=="sender"){
       SenderSocket = ws;
-    }else if(message.type == "receiver"){
+    }else if(message.type === "receiver"){
       ReceiverSocket = ws;
     }
-    else if(message.type == "createOffer"){
-      if(ws != SenderSocket){
+    else if(message.type === "createOffer"){
+      if(ws !== SenderSocket){
         return;
       }
       ReceiverSocket?.send(JSON.stringify({type:"createOffer",sdp:message.sdp}))
-    }else if(message.type == "createAnswer"){
-      if(ws!=ReceiverSocket){
+    }else if(message.type === "createAnswer"){
+      if(ws!==ReceiverSocket){
         return;
       }
       SenderSocket?.send(JSON.stringify({type:"createAnswer", sdp:message.sdp}))
     }else if(message.type=="iceCandidate"){
-      if(ws == SenderSocket){
+      if(ws === SenderSocket){
         ReceiverSocket?.send(JSON.stringify({type:"iceCandidate",candidate:message.candidate}))
       }
-      if(ws == ReceiverSocket){
+      if(ws === ReceiverSocket){
         SenderSocket?.send(JSON.stringify({type:"iceCandidate",candidate:message.candidate}))
       }
     }
   });
 
-  ws.send('something');
 });
