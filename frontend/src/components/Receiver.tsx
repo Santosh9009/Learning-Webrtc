@@ -1,26 +1,47 @@
-import { useEffect} from "react";
+import { useEffect } from "react"
+
 
 export const Receiver = () => {
+    
+    useEffect(() => {
+        const socket = new WebSocket('ws://localhost:8080');
+        socket.onopen = () => {
+            socket.send(JSON.stringify({
+                type: 'receiver'
+            }));
+        }
+        startReceiving(socket);
+    }, []);
 
-  useEffect(() => {
-    const socket: WebSocket | null = new WebSocket("ws://localhost:8080");
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: "sender" }));
-    };
+    function startReceiving(socket: WebSocket) {
+        const video = document.createElement('video');
+        document.body.appendChild(video);
 
-    socket.onmessage = async (event) => {
-      const message = JSON.parse(event.data);
-      if (message.type === "createOffer") {
         const pc = new RTCPeerConnection();
-        pc.setRemoteDescription(message.sdp);
-        const Answer = await pc.createAnswer();
-        pc.setLocalDescription(Answer);
-        socket.send(
-          JSON.stringify({ type: "createAnswer", sdp: pc.localDescription })
-        );
-      }
-    };
-  }, []);
+        pc.ontrack = (event) => {
+            video.srcObject = new MediaStream([event.track]);
+            video.play();
+        }
 
-  return <div>Receiver</div>;
-};
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'createOffer') {
+                pc.setRemoteDescription(message.sdp).then(() => {
+                    pc.createAnswer().then((answer) => {
+                        pc.setLocalDescription(answer);
+                        socket.send(JSON.stringify({
+                            type: 'createAnswer',
+                            sdp: answer
+                        }));
+                    });
+                });
+            } else if (message.type === 'iceCandidate') {
+                pc.addIceCandidate(message.candidate);
+            }
+        }
+    }
+
+    return <div>
+        receiver
+    </div>
+}
